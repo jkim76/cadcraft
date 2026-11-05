@@ -303,7 +303,9 @@ fn run_stylesmanager(s: &mut Session, p: &Value) -> Result<Value> {
                 (None, Some(_path)) => {
                     #[cfg(not(target_arch = "wasm32"))]
                     {
-                        let meta = std::fs::metadata(_path).map_err(|e| bad(cmd, format!("{_path}: {e}")))?;
+                        let meta = crate::file_access::check_read(std::path::Path::new(_path))
+                            .and_then(|()| std::fs::metadata(_path))
+                            .map_err(|e| bad(cmd, format!("{_path}: {e}")))?;
                         if meta.len() > cadcraft_doc::MAX_TABLE_FILE as u64 {
                             return Err(bad(cmd, format!("{_path}: the plot style table file is too large")));
                         }

@@ -462,6 +462,8 @@ fn save_as(s: &mut Session, cmd: &str, path: &str, opts: &SaveAs) -> Result<usiz
 fn store(path: &str, bytes: &[u8]) -> Result<()> {
     #[cfg(not(target_arch = "wasm32"))]
     {
+        // A confined session (`crate::file_access`) refuses the destination before its backup.
+        crate::file_access::check_write(std::path::Path::new(path)).map_err(|e| bad("save", e.to_string()))?;
         // A file in a folder still to be made has nothing to back up.
         if is_drawing_file(path) && crate::autosave::isavebak() && crate::atomic_write::missing_folder(std::path::Path::new(path)).is_none() {
             backup(std::path::Path::new(path))
@@ -614,6 +616,9 @@ fn backup_replaced(head: &[u8], tail: &[u8], len: u64, backup_exists: bool) -> b
 /// must not promise a backup the save won't write.
 #[cfg(not(target_arch = "wasm32"))]
 pub fn save_keeps_current(path: &std::path::Path) -> bool {
+    if crate::file_access::check_read(path).is_err() {
+        return false;
+    }
     let Ok(mut src) = std::fs::File::open(path) else { return false };
     crate::autosave::isavebak() && ends(&mut src).is_ok_and(|(head, tail, len)| backup_replaced(&head, &tail, len, backup_path(path).exists()))
 }
@@ -629,6 +634,7 @@ pub fn save_keeps_current(_path: &std::path::Path) -> bool {
 /// ([`looks_like_drawing`]) is not backed up, and the `.bak` already there is left alone.
 #[cfg(not(target_arch = "wasm32"))]
 fn backup(path: &std::path::Path) -> std::io::Result<()> {
+    crate::file_access::check_write(path)?;
     let mut src = match std::fs::File::open(path) {
         Ok(f) if f.metadata()?.is_file() => f,
         Ok(_) => return Ok(()),

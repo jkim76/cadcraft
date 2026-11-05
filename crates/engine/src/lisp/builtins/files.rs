@@ -89,7 +89,8 @@ pub fn read_text_file(_path: impl AsRef<std::path::Path>) -> Option<String> {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn can_write(path: &str) -> bool {
-    std::path::Path::new(path).parent().is_none_or(|d| d.as_os_str().is_empty() || d.exists())
+    crate::file_access::check_write(std::path::Path::new(path)).is_ok()
+        && std::path::Path::new(path).parent().is_none_or(|d| d.as_os_str().is_empty() || d.exists())
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -100,6 +101,9 @@ fn can_write(_path: &str) -> bool {
 #[cfg(not(target_arch = "wasm32"))]
 fn write_text_file(path: &str, text: &str, append: bool) {
     use std::io::Write;
+    if crate::file_access::check_write(std::path::Path::new(path)).is_err() {
+        return;
+    }
     let f = std::fs::OpenOptions::new().create(true).write(true).append(append).truncate(!append).open(path);
     if let Ok(mut f) = f {
         let _ = f.write_all(text.as_bytes());

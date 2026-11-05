@@ -263,6 +263,7 @@ fn read(file: &Path, cx: &mut Ctx) -> Result<Drawing, String> {
         use std::io::Read;
         let left = MAX_XREF_TOTAL_BYTES.saturating_sub(cx.bytes);
         let limit = MAX_XREF_BYTES.min(left);
+        crate::file_access::check_read(file).map_err(|e| e.to_string())?;
         let mut f = std::fs::File::open(file).map_err(|e| e.to_string())?;
         let len = f.metadata().map_err(|e| e.to_string())?.len();
         let too_big = || {

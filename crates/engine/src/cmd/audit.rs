@@ -157,7 +157,7 @@ fn write_audit_log(_: &Session, _: &crate::audit::Report) {}
 
 #[cfg(not(target_arch = "wasm32"))]
 fn read_path(cmd: &str, path: &str) -> Result<Vec<u8>> {
-    std::fs::read(path).map_err(|e| bad(cmd, format!("{path}: {e}")))
+    crate::file_access::check_read(std::path::Path::new(path)).and_then(|()| std::fs::read(path)).map_err(|e| bad(cmd, format!("{path}: {e}")))
 }
 
 #[cfg(target_arch = "wasm32")]

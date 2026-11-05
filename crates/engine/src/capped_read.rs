@@ -17,6 +17,7 @@ use std::path::Path;
 /// Returns an error if the path is not a regular file, cannot be opened, or holds more than `max`
 /// bytes. At most `max + 1` bytes are ever buffered, so an endless device cannot exhaust memory.
 pub fn read_capped(path: &Path, max: usize) -> io::Result<Vec<u8>> {
+    crate::file_access::check_read(path)?;
     let mut options = OpenOptions::new();
     options.read(true);
     #[cfg(unix)]

@@ -276,6 +276,14 @@ pub(crate) struct McpArgs {
     /// port first (macOS)
     #[arg(long, requires = "connect")]
     pub(crate) launch: bool,
+    /// Confine the headless session's file reads to this folder and the write roots (repeatable).
+    /// With either root flag, no command, script or AutoLISP call reads a file outside them
+    #[arg(long, value_name = "DIR", conflicts_with = "connect")]
+    pub(crate) automation_read_root: Vec<PathBuf>,
+    /// Confine the headless session's file writes (and its reads, with the read roots) to this
+    /// folder (repeatable). With a read root and no write root, nothing can be written
+    #[arg(long, value_name = "DIR", conflicts_with = "connect")]
+    pub(crate) automation_write_root: Vec<PathBuf>,
     #[command(flatten)]
     pub(crate) settings: Settings,
 }
@@ -641,6 +649,19 @@ mod tests {
             for f in list {
                 assert!(text.contains(f.extension()), "`{sub} {arg}` help `{text}` lacks {}", f.extension());
             }
+        }
+    }
+
+    #[test]
+    fn mcp_roots_repeat_and_conflict_with_connect() {
+        let args = ["mcp", "--automation-read-root", "a", "--automation-write-root", "b", "--automation-write-root", "c"];
+        let Command::Mcp(m) = parse_args(&args).unwrap().command else { panic!("not mcp") };
+        assert_eq!(m.automation_read_root, [PathBuf::from("a")]);
+        assert_eq!(m.automation_write_root, [PathBuf::from("b"), PathBuf::from("c")]);
+        assert_eq!(m.target(), McpTarget::Headless);
+        for root in ["--automation-read-root", "--automation-write-root"] {
+            let e = parse_args(&["mcp", "--connect", "127.0.0.1:7979", root, "a"]).err().unwrap();
+            assert_eq!(e.kind(), ErrorKind::ArgumentConflict, "{root}: {e}");
         }
     }
 

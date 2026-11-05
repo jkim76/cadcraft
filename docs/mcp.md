@@ -32,6 +32,23 @@ Example client configuration (Claude Code / Claude Desktop):
 { "mcpServers": { "cadcraft": { "command": "cadcraft-cli", "args": ["mcp"] } } }
 ```
 
+## Confine file access
+
+A headless session reads and writes files with your permissions. Give it the folders it may use:
+
+```sh
+cadcraft-cli mcp --automation-read-root ~/plans --automation-write-root ~/ArtCraftWork/cad
+```
+
+Reads are allowed inside a read or a write root, writes only inside a write root; both flags
+repeat. Every path is checked where the file is opened, so OPEN, SAVE/SAVEAS, EXPORT, PLOT to a
+file, INSERT, XATTACH, IMAGEATTACH, SCRIPT, APPLOAD, AutoLISP's `open`, `render {path}` and the rest
+are confined alike, whether they come from `execute`, `command_line` or `script`. A path is resolved
+first (symlinks followed, `..` refused where the folder doesn't exist yet), and a refused path is an
+`isError` result that says the file access is confined. A root that isn't an existing folder stops
+startup (exit 1). The flags can't be combined with `--connect`: the app opens its own files. Without
+them nothing is checked.
+
 ## Tools
 
 | Tool | What it does |
